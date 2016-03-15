@@ -6,6 +6,10 @@ import random
 linksToCheck = set([])
 linksVisited = []
 linksWithErrors = []
+correctingLinks = []
+
+logfile = open('scraper.log', 'a')
+logfile.write('starting log\n')
 
 def getLinksFromUrl (url):
     linksToCheck.remove(url)
@@ -15,10 +19,12 @@ def getLinksFromUrl (url):
         tree = html.fromstring(page.content)
         links = tree.xpath('//a/@href')
         linksVisited.append(url)
+        logfile.write('link visited [' + url + ']\n')
     except:
         # print('ooops, can''t do it for {' + url + '}, error', sys.exc_info()[0])
         linksWithErrors.append(url)
         print('url error', url)
+        logfile.write('error on link [' + url + ']\n')
         return []
 
     domain = url.replace('https:', '')
@@ -30,20 +36,24 @@ def getLinksFromUrl (url):
 
     correctedLinks = []
     for link in links:
+        rawLink = link
         if not link.startswith('http'):
             if link.startswith('//'):
                 link = 'http:' + link
-                print(1, link, url)
+                # print(1, link, url)
             elif link.startswith('/'):
                 base = url.split('/')[1]
                 link = 'http://'+ domain + '/' + link
-                print(2, link, base, url)
+                # print(2, link, base, url)
             else:
                 base = url.split('/')[0]
                 link = 'http://' + domain + '/' + link
-                print(3, link, base, url)
+                # print(3, link, base, url)
 
         correctedLinks.append(link)
+
+        correctingLinks.append((rawLink, link))
+        logfile.write('rawlink [' + rawLink + ']; link [' + link + ']; url [' + url + ']; domain [' + domain + ']\n')
 
     for newLink in correctedLinks:
         linksToCheck.add(newLink)
