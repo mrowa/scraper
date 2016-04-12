@@ -2,29 +2,35 @@ import requests
 from lxml import html
 import sys
 import random
+import datetime
 
-linksToCheck = set([])
-linksVisited = []
-linksWithErrors = []
-correctingLinks = []
+links_to_check = set([])
+links_visited = []
+links_with_errors = []
 
 logfile = open('scraper.log', 'a')
 logfile.write('starting log\n')
 
-def getLinksFromUrl (url):
-    linksToCheck.remove(url)
-    links = []
+
+def write_log(message, kind=None):
+    string = str(datetime.datetime.utcnow())
+    string += ' [' + kind + '] '
+    string += '`' + message.replace('\n', '\\n') + '`'
+    logfile.write(string)
+
+
+def get_links_from_url(url):
+    links_to_check.remove(url)
     try:
         page = requests.get(url)
         tree = html.fromstring(page.content)
         links = tree.xpath('//a/@href')
-        linksVisited.append(url)
-        logfile.write('link visited [' + url + '], length (' + str(len(page.content)) + ')\n')
+        links_visited.append(url)
+        write_log('link visited [' + url + '], length (' + str(len(page.content)) + ')', 'log')
     except:
-        # print('ooops, can''t do it for {' + url + '}, error', sys.exc_info()[0])
-        linksWithErrors.append(url)
+        links_with_errors.append(url)
         print('url error', url)
-        logfile.write('error on link [' + url + ']\n')
+        write_log('error on link [' + url + '], error [' + sys.exc_info()[0] + ']', 'error')
         return []
 
     domain = url.replace('https:', '')
@@ -34,42 +40,42 @@ def getLinksFromUrl (url):
         domain = domain[1:]
     domain = domain.split('/')[0]
 
-    correctedLinks = []
-    for link in links:
-        rawLink = link
-        newlink = link
-        if not link.startswith('http'):
-            if link.startswith('//'):
-                newlink = 'http:' + link
-#                print('startswith // making', newlink, 'from', link, url)
-            elif link.startswith('/'):
-                newlink = 'http://' + domain + link
-#                print('startswith / making', newlink, 'from domain', domain, 'link', link, 'base', base, 'and url', url)
+    corrected_links = []
+    for single_link in links:
+        raw_link = single_link
+        new_link = single_link
+        if not single_link.startswith('http'):
+            if single_link.startswith('//'):
+                new_link = 'http:' + single_link
+                #print('startswith // making', new_link, 'from', '[' + single_link + ']', 'on', url)
+            elif single_link.startswith('/'):
+                new_link = 'http://' + domain + single_link
+                #print('startswith / making', new_link, 'from domain',
+                #      '[' + domain + ']', 'link', '[' + single_link + ']', 'on', url)
             else:
-                base = url.split('/')[0]
-                newlink = 'http://' + domain + '/' + link
-#                print('startswith - else making', newlink, 'from domain', domain, 'link', link, 'base', base, 'and url', url)
+                new_link = 'http://' + domain + '/' + single_link
+                #print('startswith - else making', new_link,
+                #      'from domain', '[' + domain + ']', 'link', '[' + single_link + ']', 'on', url)
 
-        correctedLinks.append(newlink)
+            corrected_links.append(new_link)
 
-        correctingLinks.append((rawLink, newlink))
-        logfile.write('rawlink [' + rawLink + ']; link [' + link + ']; url [' + url + ']; domain [' + domain + ']\n')
+        logfile.write('rawlink [' + raw_link + ']; link [' + single_link + ']; url [' + url + ']; domain [' + domain + ']\n')
 
-    for newLink in correctedLinks:
-        linksToCheck.add(newLink)
+    for corrected_link in corrected_links:
+        if corrected_link not in links_visited:
+            links_to_check.add(corrected_link)
 
 #    if not 'stackoverflow.com' in url:
-#        print('finished, found', len(links), 'links on', url)
-    print('[' + url[0:100] +'] to do', len(linksToCheck),'good', len(linksVisited), 'bad', len(linksWithErrors))
+    print('done', len(links_visited) + len(links_with_errors), 'to do', len(links_to_check),
+          'good', len(links_visited), 'bad', len(links_with_errors), 'Visited', '[' + url[0:100] + ']', )
 
-    return correctedLinks
+    return corrected_links
 
-firstLink = 'http://stackoverflow.com'
-# found = getLinksFromUrl(firstLink)
+first_link = 'http://stackoverflow.com'
 
-linksToCheck.add(firstLink)
+links_to_check.add(first_link)
 
 
-while len(linksToCheck) > 0:
-    link = random.sample(linksToCheck,1)
-    getLinksFromUrl(link[0])
+while len(links_to_check) > 0:
+    link = random.sample(links_to_check, 1)
+    get_links_from_url(link[0])
