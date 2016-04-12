@@ -8,14 +8,14 @@ links_to_check = set([])
 links_visited = []
 links_with_errors = []
 
-logfile = open('scraper.log', 'a')
-logfile.write('starting log\n')
+logfile = open('scraper_' + str(datetime.datetime.utcnow().strftime("%Y%m%d-%H%M%S")) + '.log', 'a')
+logfile.write('starting log at ' + str(datetime.datetime.utcnow()) + '\n')
 
 
 def write_log(message, kind=None):
-    string = str(datetime.datetime.utcnow())
+    string = str(datetime.datetime.utcnow().isoformat())
     string += ' [' + kind + '] '
-    string += '`' + message.replace('\n', '\\n') + '`'
+    string += '`' + message.replace('\n', '\\n') + '`\n'
     logfile.write(string)
 
 
@@ -30,7 +30,7 @@ def get_links_from_url(url):
     except:
         links_with_errors.append(url)
         print('url error', url)
-        write_log('error on link [' + url + '], error [' + sys.exc_info()[0] + ']', 'error')
+        write_log('error on link [' + url + '], error [' + str(sys.exc_info()[0]) + ']', 'error')
         return []
 
     domain = url.replace('https:', '')
@@ -59,7 +59,8 @@ def get_links_from_url(url):
 
             corrected_links.append(new_link)
 
-        logfile.write('rawlink [' + raw_link + ']; link [' + single_link + ']; url [' + url + ']; domain [' + domain + ']\n')
+            write_log('rawlink [' + raw_link + ']; link [' + single_link
+                      + ']; url [' + url + ']; domain [' + domain + ']', 'info')
 
     for corrected_link in corrected_links:
         if corrected_link not in links_visited:
